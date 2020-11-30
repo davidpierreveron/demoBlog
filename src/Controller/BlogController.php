@@ -3,7 +3,9 @@
 namespace App\Controller;
 
 use App\Entity\Article;
+use App\Entity\Comment;
 use App\form\ArticleType;
+use App\Form\CommentType;
 use Doctrine\ORM\EntityManager;
 use App\Repository\ArticleRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -11,8 +13,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
 class BlogController extends AbstractController
 {
@@ -118,14 +120,41 @@ class BlogController extends AbstractController
     /**
      * @Route("/blog/{id}", name="blog_show")
      */
-    public function show(Article $article): Response
+    public function show(Article $article, Request $request, EntityManagerInterface $manager): Response
     {
        // $repo = $this->getDoctrine()->getRepository(Article::class);
         // $article = $repo->find($id);
-        // dump($article);
+       
+
+        $comment = new Comment;
+
+        dump($request);
+
+        $formComment = $this->createForm(CommentType::class, $comment);
+
+        $formComment->handleRequest($request);
+
+        if($formComment->isSubmitted() && $formComment->isValid())
+        {
+            $comment->setCreatedAt((new \DateTime));
+            $comment->setArticle($article);
+
+            $manager->persist($comment);
+            $manager->flush();
+
+            $this->addFlash('success', "Le commentaire a bien été posté !");
+
+            return $this->redirectToRoute('blog_show',[
+                'id' => $article->getId()
+            ]);
+        }
+
+
+
 
         return $this->render('blog/show.html.twig',[
-        'article' => $article
+        'article' => $article,
+        'formComment' => $formComment->createView()
         ]);
     }
     /* 
